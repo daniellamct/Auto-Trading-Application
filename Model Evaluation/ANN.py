@@ -13,8 +13,8 @@ from keras import models
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Data Preprocessing
-start_date = '2016-01-01'
-end_date = '2025-01-01'
+start_date = '2022-01-01'
+end_date = '2024-01-01'
 
 new_start_date = datetime.strptime(start_date, '%Y-%m-%d')
 new_start_date = new_start_date - timedelta(days=60)
@@ -66,17 +66,32 @@ dataset_MACDHistogram = np.reshape(dataset_MACDHistogram, (-1, 1))
 dataset_Change3day = np.reshape(dataset_Change3day, (-1, 1))
 
 # Scaling
+training_data_len = math.ceil(len(data) * .8)
 scaler = MinMaxScaler(feature_range=(0,1))
 
-dataset_Close = scaler.fit_transform(dataset_Close)
-dataset_10MA = scaler.fit_transform(dataset_10MA)
-dataset_20MA = scaler.fit_transform(dataset_20MA)
-dataset_volume = scaler.fit_transform(dataset_volume)
-dataset_MACD = scaler.fit_transform(dataset_MACD)
-dataset_SignalLine = scaler.fit_transform(dataset_SignalLine)
-dataset_MACDHistogram = scaler.fit_transform(dataset_MACDHistogram)
-dataset_Change3day = scaler.fit_transform(dataset_Change3day)
+scaler.fit(dataset_Close[:training_data_len])
+dataset_Close = scaler.transform(dataset_Close)
 
+scaler.fit(dataset_10MA[:training_data_len])
+dataset_10MA = scaler.transform(dataset_10MA)
+
+scaler.fit(dataset_20MA[:training_data_len])
+dataset_20MA = scaler.transform(dataset_20MA)
+
+scaler.fit(dataset_volume[:training_data_len])
+dataset_volume = scaler.transform(dataset_volume)
+
+scaler.fit(dataset_MACD[:training_data_len])
+dataset_MACD = scaler.transform(dataset_MACD)
+
+scaler.fit(dataset_SignalLine[:training_data_len])
+dataset_SignalLine = scaler.transform(dataset_SignalLine)
+
+scaler.fit(dataset_MACDHistogram[:training_data_len])
+dataset_MACDHistogram = scaler.transform(dataset_MACDHistogram)
+
+scaler.fit(dataset_Change3day[:training_data_len])
+dataset_Change3day = scaler.transform(dataset_Change3day)
 
 
 X_train = []
@@ -84,7 +99,6 @@ X_test = []
 y_train = []
 y_test = []
 
-training_data_len = math.ceil(len(data) * .8)
 
 for i in range(49, training_data_len):
     # X 
@@ -105,7 +119,7 @@ for i in range(49, training_data_len):
     # y
     y_train.append(dataset_Change3day[i][0])
 
-for i in range(training_data_len, len(data)):
+for i in range(training_data_len+49, len(data)):
     # X 
     timesteps = []
     for j in range(i-49, i+1):
@@ -216,7 +230,7 @@ train_pred_price = train_close_price + y_train_ANN_pred
 # Price Prediction Calculation (Testing Data)
 test_close_price = data['Close']
 test_close_price = test_close_price.to_numpy().flatten()
-test_close_price = test_close_price[len(y_train_ANN_pred)+49:]
+test_close_price = test_close_price[len(y_train_ANN_pred)+49+49:]
 y_test_ANN_pred = y_test_ANN_pred.reshape(y_test_ANN_pred.shape[0])
 test_pred_price = test_close_price + y_test_ANN_pred
 
@@ -231,7 +245,7 @@ plt.plot(data.index, data.Close, label="Original Price", color="b")
 plt.plot(data.index[49:len(X_train)+49]+ pd.Timedelta(days=3), train_pred_price, label="Training data Prediction", color="g")
 
 # Testing Data Prediction
-plt.plot(data.index[len(X_train)+49:]+ pd.Timedelta(days=3), test_pred_price, label="Testing data Prediction", color="brown")
+plt.plot(data.index[len(X_train)+49+49:]+ pd.Timedelta(days=3), test_pred_price, label="Testing data Prediction", color="brown")
 
 plt.legend()
 plt.title("ANN Prediction - Apple")
