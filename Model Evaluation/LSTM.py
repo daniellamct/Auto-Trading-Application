@@ -13,8 +13,8 @@ from keras import models
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Data Preprocessing
-start_date = '2016-01-01'
-end_date = '2025-01-01'
+start_date = '2023-05-01'
+end_date = '2024-01-01'
 
 new_start_date = datetime.strptime(start_date, '%Y-%m-%d')
 new_start_date = new_start_date - timedelta(days=60)
@@ -136,48 +136,47 @@ y_train = np.reshape(y_train, (y_train.shape[0], 1))
 y_test = np.array(y_test)
 y_test = np.reshape(y_test, (y_test.shape[0], 1))
 
-# Initializing the model
-regressorANN = keras.Sequential()
-# Adding input layer and first hidden layer
-regressorANN.add(layers.Dense(units=50, activation='relu', input_shape=(50, 7)))
-# Adding a second hidden layer
-regressorANN.add(layers.Dense(units=25, activation='relu'))
-# Flatten the output to ensure a single output per sample
-regressorANN.add(layers.Flatten())
-# Adding the output layer
-regressorANN.add(layers.Dense(units=1))
-# Compiling the model
-regressorANN.compile(optimizer='adam', loss='mean_squared_error', metrics=["mae"])
-# Storing mse and mae values
-ANNmse = regressorANN.evaluate(X_test, y_test, verbose=0)
-# Fitting the model
-regressorANN.fit(X_train, y_train, batch_size=1, epochs=12)
-regressorANN.summary()
+# Initialising the LSTM model
+regressorLSTM = models.Sequential()
+#Adding LSTM layers
+regressorLSTM.add(layers.LSTM(50, return_sequences = True, input_shape = (X_train.shape[1], 7)))
+regressorLSTM.add(layers.LSTM(50, return_sequences = False))
+regressorLSTM.add(layers.Dense(25))
+#Adding the output layer
+regressorLSTM.add(layers.Dense(1))
+#Compiling the model
+regressorLSTM.compile(optimizer = 'adam',
+loss = 'mean_squared_error',
+metrics = ["accuracy"])
+#Fitting the model
+regressorLSTM.fit(X_train, y_train, batch_size = 1, epochs = 12)
+LSTMmse = regressorLSTM.evaluate(X_test, y_test)
+regressorLSTM.summary()
 
 
-print(ANNmse)
+print(LSTMmse)
 
 # Make prediction of training data 
-y_train_ANN_pred = regressorANN.predict(X_train)
-y_train_ANN_pred = scaler.inverse_transform(y_train_ANN_pred)
+y_train_LSTM_pred = regressorLSTM.predict(X_train)
+y_train_LSTM_pred = scaler.inverse_transform(y_train_LSTM_pred)
 y_train = scaler.inverse_transform(y_train)
 
 # Evaluate performance
 print("Training Data:")
-mse = mean_squared_error(y_train, y_train_ANN_pred)
-r2 = r2_score(y_train, y_train_ANN_pred)
+mse = mean_squared_error(y_train, y_train_LSTM_pred)
+r2 = r2_score(y_train, y_train_LSTM_pred)
 print(f'Mean Squared Error: {mse:.2f}')
 print(f'R-squared: {r2:.2f}')
 
 # Make prediction of testing data 
-y_test_ANN_pred = regressorANN.predict(X_test)
-y_test_ANN_pred = scaler.inverse_transform(y_test_ANN_pred)
+y_test_LSTM_pred = regressorLSTM.predict(X_test)
+y_test_LSTM_pred = scaler.inverse_transform(y_test_LSTM_pred)
 y_test = scaler.inverse_transform(y_test)
 
 # Evaluate performance
 print("\nTesting Data: ")
-mse_test = mean_squared_error(y_test, y_test_ANN_pred)
-r2_test = r2_score(y_test, y_test_ANN_pred)
+mse_test = mean_squared_error(y_test, y_test_LSTM_pred)
+r2_test = r2_score(y_test, y_test_LSTM_pred)
 print(f'Mean Squared Error: {mse_test:.2f}')
 print(f'R-squared: {r2_test:.2f}')
 
@@ -188,7 +187,7 @@ plt.figure(figsize=(12, 6))
 
 # Scatter plot (Training Data)
 plt.subplot(1, 2, 1)
-plt.scatter(y_train, y_train_ANN_pred, alpha=0.5, color='blue', label='Predictions')
+plt.scatter(y_train, y_train_LSTM_pred, alpha=0.5, color='blue', label='Predictions')
 plt.plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], color='red', linestyle='--', label='Ideal')
 plt.xlabel('Actual Changes')
 plt.ylabel('Predicted Changes')
@@ -197,7 +196,7 @@ plt.legend()
 
 # Scatter Plot (Testing Data)
 plt.subplot(1, 2, 2)
-plt.scatter(y_test, y_test_ANN_pred, alpha=0.5, color='green', label='Predictions')
+plt.scatter(y_test, y_test_LSTM_pred, alpha=0.5, color='green', label='Predictions')
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linestyle='--', label='Ideal')
 plt.xlabel('Actual Changes')
 plt.ylabel('Predicted Changes')
@@ -208,17 +207,17 @@ plt.legend()
 # Price Prediction Calculation (Training Data)
 train_close_price = data['Close']
 train_close_price = train_close_price.to_numpy().flatten()
-train_close_price = train_close_price[49:len(y_train_ANN_pred)+49]
-y_train_ANN_pred = y_train_ANN_pred.reshape(y_train_ANN_pred.shape[0])
-train_pred_price = train_close_price + y_train_ANN_pred
+train_close_price = train_close_price[49:len(y_train_LSTM_pred)+49]
+y_train_LSTM_pred = y_train_LSTM_pred.reshape(y_train_LSTM_pred.shape[0])
+train_pred_price = train_close_price + y_train_LSTM_pred
 
 
 # Price Prediction Calculation (Testing Data)
 test_close_price = data['Close']
 test_close_price = test_close_price.to_numpy().flatten()
-test_close_price = test_close_price[len(y_train_ANN_pred)+49:]
-y_test_ANN_pred = y_test_ANN_pred.reshape(y_test_ANN_pred.shape[0])
-test_pred_price = test_close_price + y_test_ANN_pred
+test_close_price = test_close_price[len(y_train_LSTM_pred)+49:]
+y_test_LSTM_pred = y_test_LSTM_pred.reshape(y_test_LSTM_pred.shape[0])
+test_pred_price = test_close_price + y_test_LSTM_pred
 
 
 # Plot for Random Forest predictions
@@ -228,13 +227,13 @@ plt.figure(figsize=(18, 6))
 plt.plot(data.index, data.Close, label="Original Price", color="b")
 
 # Training Data Prediction
-plt.plot(data.index[49:len(X_train)+49]+ pd.Timedelta(days=3), train_pred_price, label="Training data Prediction", color="g")
+plt.plot(data.index[49:len(X_train)+49]+ pd.Timedelta(days=0), train_pred_price, label="Training data Prediction", color="g")
 
 # Testing Data Prediction
-plt.plot(data.index[len(X_train)+49:]+ pd.Timedelta(days=3), test_pred_price, label="Testing data Prediction", color="brown")
+plt.plot(data.index[len(X_train)+49:]+ pd.Timedelta(days=0), test_pred_price, label="Testing data Prediction", color="brown")
 
 plt.legend()
-plt.title("ANN Prediction - Apple")
+plt.title("LSTM Prediction - Apple")
 plt.xlabel("Days")
 plt.ylabel("Closing Price")
 plt.tight_layout()
