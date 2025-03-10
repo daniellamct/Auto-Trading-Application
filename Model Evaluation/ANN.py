@@ -10,7 +10,7 @@ import keras
 from keras import layers
 from keras import models
 
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 # Data Preprocessing
 start_date = '2022-01-01'
@@ -152,72 +152,52 @@ y_test = np.reshape(y_test, (y_test.shape[0], 1))
 
 # Initializing the model
 regressorANN = keras.Sequential()
-# Adding input layer and first hidden layer
+# Adding layers
 regressorANN.add(layers.Dense(units=50, activation='relu', input_shape=(50, 7)))
-# Adding a second hidden layer
 regressorANN.add(layers.Dense(units=25, activation='relu'))
-# Flatten the output to ensure a single output per sample
 regressorANN.add(layers.Flatten())
 # Adding the output layer
 regressorANN.add(layers.Dense(units=1))
 # Compiling the model
 regressorANN.compile(optimizer='adam', loss='mean_squared_error', metrics=["mae"])
-# Storing mse and mae values
-ANNmse = regressorANN.evaluate(X_test, y_test, verbose=0)
 # Fitting the model
-regressorANN.fit(X_train, y_train, batch_size=1, epochs=12)
+regressorANN.fit(X_train, y_train, batch_size=5, epochs=200)
+ANNmse = regressorANN.evaluate(X_test, y_test, verbose=0)
 regressorANN.summary()
-
-
 print(ANNmse)
 
 # Make prediction of training data 
 y_train_ANN_pred = regressorANN.predict(X_train)
-y_train_ANN_pred = scaler.inverse_transform(y_train_ANN_pred)
-y_train = scaler.inverse_transform(y_train)
 
 # Evaluate performance
 print("Training Data:")
-mse = mean_squared_error(y_train, y_train_ANN_pred)
-r2 = r2_score(y_train, y_train_ANN_pred)
-print(f'Mean Squared Error: {mse:.2f}')
-print(f'R-squared: {r2:.2f}')
+mse_train = mean_squared_error(y_train, y_train_ANN_pred)
+mae_train = mean_absolute_error(y_train, y_train_ANN_pred)
+print(f'Mean Squared Error: {mse_train:.5f}')
+print(f'Mean Absolute Error: {mae_train:.5f}')
+
 
 # Make prediction of testing data 
 y_test_ANN_pred = regressorANN.predict(X_test)
-y_test_ANN_pred = scaler.inverse_transform(y_test_ANN_pred)
-y_test = scaler.inverse_transform(y_test)
 
 # Evaluate performance
 print("\nTesting Data: ")
 mse_test = mean_squared_error(y_test, y_test_ANN_pred)
-r2_test = r2_score(y_test, y_test_ANN_pred)
-print(f'Mean Squared Error: {mse_test:.2f}')
-print(f'R-squared: {r2_test:.2f}')
+mae_test = mean_absolute_error(y_test, y_test_ANN_pred)
+print(f'Mean Squared Error: {mse_test:.5f}')
+print(f'Mean Absolute Error: {mae_test:.5f}')
+print("Testing inversed: ")
+mse_test = mean_squared_error(scaler.inverse_transform(y_test), scaler.inverse_transform(y_test_ANN_pred))
+mae_test = mean_absolute_error(scaler.inverse_transform(y_test), scaler.inverse_transform(y_test_ANN_pred))
+print(f'Mean Squared Error: {mse_test:.5f}')
+print(f'Mean Absolute Error: {mae_test:.5f}')
 
-
+# Convert back to original scale for data visualization
+y_train_ANN_pred = scaler.inverse_transform(y_train_ANN_pred)
+y_test_ANN_pred = scaler.inverse_transform(y_test_ANN_pred)
 
 # Data Visualization
 plt.figure(figsize=(12, 6))
-
-# Scatter plot (Training Data)
-plt.subplot(1, 2, 1)
-plt.scatter(y_train, y_train_ANN_pred, alpha=0.5, color='blue', label='Predictions')
-plt.plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], color='red', linestyle='--', label='Ideal')
-plt.xlabel('Actual Changes')
-plt.ylabel('Predicted Changes')
-plt.title('Price Change Prediction (Training Data)')
-plt.legend()
-
-# Scatter Plot (Testing Data)
-plt.subplot(1, 2, 2)
-plt.scatter(y_test, y_test_ANN_pred, alpha=0.5, color='green', label='Predictions')
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linestyle='--', label='Ideal')
-plt.xlabel('Actual Changes')
-plt.ylabel('Predicted Changes')
-plt.title('Price Change Prediction (Testing Data)')
-plt.legend()
-
 
 # Price Prediction Calculation (Training Data)
 train_close_price = data['Close']
@@ -225,6 +205,17 @@ train_close_price = train_close_price.to_numpy().flatten()
 train_close_price = train_close_price[49:len(y_train_ANN_pred)+49]
 y_train_ANN_pred = y_train_ANN_pred.reshape(y_train_ANN_pred.shape[0])
 train_pred_price = train_close_price + y_train_ANN_pred
+
+# Scatter plot (Training Data)
+pred_price = train_pred_price[:-3]
+real_price = train_close_price[3:]
+plt.subplot(1, 2, 1)
+plt.scatter(real_price, pred_price, alpha=0.5, color='blue', label='Predictions')
+plt.plot([real_price.min(), real_price.max()], [real_price.min(), real_price.max()], color='red', linestyle='--', label='Ideal')
+plt.xlabel('Actual Prices')
+plt.ylabel('Predicted Prices')
+plt.title('Price Prediction (Training Data)')
+plt.legend()
 
 
 # Price Prediction Calculation (Testing Data)
@@ -234,8 +225,20 @@ test_close_price = test_close_price[len(y_train_ANN_pred)+49+49:]
 y_test_ANN_pred = y_test_ANN_pred.reshape(y_test_ANN_pred.shape[0])
 test_pred_price = test_close_price + y_test_ANN_pred
 
+# Scatter plot (Testing Data)
+pred_price = test_pred_price[:-3]
+real_price = test_close_price[3:]
+plt.subplot(1, 2, 2)
+plt.scatter(real_price, pred_price, alpha=0.5, color='green', label='Predictions')
+plt.plot([real_price.min(), real_price.max()], [real_price.min(), real_price.max()], color='red', linestyle='--', label='Ideal')
+plt.xlabel('Actual Prices')
+plt.ylabel('Predicted Prices')
+plt.title('Price Prediction (Testing Data)')
+plt.legend()
 
-# Plot for Random Forest predictions
+
+
+# Plot for ANN
 plt.figure(figsize=(18, 6))
 
 # Original Price
