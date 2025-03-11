@@ -1,26 +1,14 @@
-# from Decision Tree note
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier, plot_tree
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay,accuracy_score, recall_score, f1_score, roc_curve, auc
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import RocCurveDisplay
-from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import LabelEncoder
-
-# from RNN note
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from datetime import datetime, timedelta
 import yfinance as yf
 import math
-
-# for random forest regression
 import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-
+import joblib
 
 # Data Preprocessing
 start_date = '2020-01-01'
@@ -64,6 +52,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 rf_model = RandomForestRegressor(random_state=1234)
 rf_model.fit(X_train, y_train)
 
+# Save the trained model
+joblib.dump(rf_model, 'Trained Models/RandomForest_model.h5')
 
 # Make prediction of training data 
 y_train_rf_pred = rf_model.predict(X_train)

@@ -5,12 +5,11 @@ import matplotlib.pyplot as plt
 import math
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import keras
 from keras import layers
 from keras import models
 
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 # Data Preprocessing
 start_date = '2022-01-01'
@@ -168,7 +167,8 @@ LSTMmse = regressorLSTM.evaluate(X_test, y_test)
 regressorLSTM.summary()
 print(LSTMmse)
 
-
+# Save the trained model
+regressorLSTM.save('Trained Models/LSTM_model.h5')
 
 # Make prediction of training data 
 y_train_LSTM_pred = regressorLSTM.predict(X_train)

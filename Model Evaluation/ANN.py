@@ -5,12 +5,10 @@ import matplotlib.pyplot as plt
 import math
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import keras
 from keras import layers
 from keras import models
-
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 # Data Preprocessing
 start_date = '2022-01-01'
@@ -165,6 +163,9 @@ regressorANN.fit(X_train, y_train, batch_size=5, epochs=200)
 ANNmse = regressorANN.evaluate(X_test, y_test, verbose=0)
 regressorANN.summary()
 print(ANNmse)
+
+# Save the trained model
+regressorANN.save('Trained Models/ANN_model.h5')
 
 # Make prediction of training data 
 y_train_ANN_pred = regressorANN.predict(X_train)
