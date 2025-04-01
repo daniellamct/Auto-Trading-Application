@@ -7,6 +7,8 @@ from transformers import AutoTokenizer
 from scipy.special import softmax
 from summarizer import Summarizer
 
+state = "Initializing models" # Update GUI application state
+
 # Load the pretrained model
 task = 'sentiment-latest'
 model_dir = f'News Sentiment Analysis/cardiffnlp/twitter-roberta-base-{task}'
@@ -22,6 +24,7 @@ chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
+state = "Gathering News Links" # Update GUI application state
 
 # Web Scraping
 stock = "AAPL"
@@ -51,12 +54,16 @@ for i in range(0, len(links)):
     paragraph = ""
 
     try:
+        state = f'Fetching News: {str(i+1)}' # Update GUI application state
+        
         # Web Scraping for each article
         url = links[i]
         driver.get(url)
         print(f'Fetched News: {str(i+1)}')
         file = driver.page_source
         soup = BeautifulSoup(file, 'html.parser')
+
+        state = f'Processing News: {str(i+1)}' # Update GUI application state
 
         # Title Extraction
         title_area = soup.find('div', class_='cover-title')
