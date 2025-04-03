@@ -1,5 +1,4 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import requests
 from bs4 import BeautifulSoup
 from textblob import TextBlob
 from transformers import AutoModelForSequenceClassification
@@ -7,9 +6,9 @@ from transformers import AutoTokenizer
 from scipy.special import softmax
 from summarizer import Summarizer
 
-state = "Initializing models" # Update GUI application state
-
 # Load the pretrained model
+state = "Loading models" # Update GUI application state
+print(state)
 task = 'sentiment-latest'
 model_dir = f'News Sentiment Analysis/cardiffnlp/twitter-roberta-base-{task}'
 tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -18,22 +17,17 @@ model = AutoModelForSequenceClassification.from_pretrained(model_dir)
 # Load the summarizer
 model_summarizer = Summarizer()
 
-# Set up Chrome options
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-
-state = "Gathering News Links" # Update GUI application state
-
 # Web Scraping
+state = "Gathering News Links" # Update GUI application state
+print(state)
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 stock = "AAPL"
 url = f'https://finance.yahoo.com/quote/{stock}/news/?p={stock}'
-driver = webdriver.Chrome(options=chrome_options)  
-driver.get(url)
-print("Fetched the News menu")
-file = driver.page_source
-soup = BeautifulSoup(file, 'html.parser')
+response = requests.get(url, headers=headers)
+received_content = response.text
+soup = BeautifulSoup(received_content, 'html.parser')
 
 # Article links extraction
 li_li = soup.find_all('li', class_='story-item')
@@ -55,15 +49,16 @@ for i in range(0, len(links)):
 
     try:
         state = f'Fetching News: {str(i+1)}' # Update GUI application state
-        
+        print(state)
+
         # Web Scraping for each article
         url = links[i]
-        driver.get(url)
-        print(f'Fetched News: {str(i+1)}')
-        file = driver.page_source
-        soup = BeautifulSoup(file, 'html.parser')
+        response = requests.get(url, headers=headers)
+        received_content = response.text
+        soup = BeautifulSoup(received_content, 'html.parser')
 
         state = f'Processing News: {str(i+1)}' # Update GUI application state
+        print(state)
 
         # Title Extraction
         title_area = soup.find('div', class_='cover-title')

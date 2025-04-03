@@ -1,15 +1,15 @@
-from selenium import webdriver
+import requests
 from bs4 import BeautifulSoup
-from textblob import TextBlob
 
 # Web Scraping
 stock = "AMZN"
 url = f'https://finance.yahoo.com/quote/{stock}/profile/'
-driver = webdriver.Chrome() 
-driver.get(url)
-file = driver.page_source
-soup = BeautifulSoup(file, 'html.parser')
-
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
+response = requests.get(url, headers=headers)
+received_content = response.text
+soup = BeautifulSoup(received_content, 'html.parser')
 
 companyName = ""
 sector = ""
