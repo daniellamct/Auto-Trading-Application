@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import math
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
-import joblib
 import keras
 
 # Data Preprocessing
@@ -13,7 +12,7 @@ end_date = datetime.now()
 start_date = end_date - timedelta(days=730) # 2 years
 new_start_date = start_date - timedelta(days=60)
 
-stock = "AMZN"
+stock = "X"
 data = yf.download(stock, new_start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
 
 # Feature Calculation
@@ -138,41 +137,40 @@ X_future = np.reshape(X_future, (X_future.shape[0], X_future.shape[1],7))
 ANN_model = keras.models.load_model('Trained Models/ANN_model.h5')
 
 # Past prediction
-y_past_predict = ANN_model.predict(X_past)
-y_past_predict = scaler.inverse_transform(y_past_predict)
-y_past_predict = y_past_predict.reshape(y_past_predict.shape[0])
+y_past_predict_ann = ANN_model.predict(X_past)
+y_past_predict_ann = scaler.inverse_transform(y_past_predict_ann)
+y_past_predict_ann = y_past_predict_ann.reshape(y_past_predict_ann.shape[0])
 
-past_predict_price = data['Close'].to_numpy().flatten()
-past_predict_price = past_predict_price[49:-3]
-past_predict_price = past_predict_price + y_past_predict
+past_predict_price_ann = data['Close'].to_numpy().flatten()
+past_predict_price_ann = past_predict_price_ann[49:-3]
+past_predict_price_ann = past_predict_price_ann + y_past_predict_ann
 
 # Future prediction
-y_future_predict = ANN_model.predict(X_future)
-y_future_predict = scaler.inverse_transform(y_future_predict)
-y_future_predict = y_future_predict.reshape(y_future_predict.shape[0])
+y_future_predict_ann = ANN_model.predict(X_future)
+y_future_predict_ann = scaler.inverse_transform(y_future_predict_ann)
+y_future_predict_ann = y_future_predict_ann.reshape(y_future_predict_ann.shape[0])
 
-future_predict_price = data['Close'].to_numpy().flatten()
-future_predict_price = future_predict_price[-3:]
-future_predict_price = future_predict_price + y_future_predict
-
-future_predict_price = np.insert(future_predict_price, 0, data['Close'].tail(1).values[0])
+future_predict_price_ann = data['Close'].to_numpy().flatten()
+future_predict_price_ann = future_predict_price_ann[-3:]
+future_predict_price_ann = future_predict_price_ann + y_future_predict_ann
+future_predict_price_ann = np.insert(future_predict_price_ann, 0, data['Close'].tail(1).values[0])
 
 
 print("\n\nANN: ")
-print(f'Latest Closing Price: {future_predict_price[0]:.2f}')
-print(f'Future Closing Price (Next Day): {future_predict_price[1]:.2f}')
-print(f'Future Closing Price (Two Days Ahead): {future_predict_price[2]:.2f}')
-print(f'Future Closing Price (Three Days Ahead): {future_predict_price[3]:.2f}\n')
+print(f'Latest Closing Price: {future_predict_price_ann[0]:.2f}')
+print(f'Future Closing Price (Next Day): {future_predict_price_ann[1]:.2f}')
+print(f'Future Closing Price (Two Days Ahead): {future_predict_price_ann[2]:.2f}')
+print(f'Future Closing Price (Three Days Ahead): {future_predict_price_ann[3]:.2f}\n')
 
 # Plot the Graph
 plt.figure(figsize=(18, 6))
 plt.plot(data.index, data.Close, label="Original Price", color="b") # Original Price
 
-plt.plot(data.index[52:-30], past_predict_price[:-30], label="Past data Prediction", color="brown") # Past Prediction Price
+plt.plot(data.index[52:-30], past_predict_price_ann[:-30], label="Past Predicted Price", color="brown") # Past Predictd Price
 
-last_index = data.index[-1]
-future_index = pd.date_range(start=last_index, periods=len(future_predict_price), freq='D')
-plt.plot(future_index, future_predict_price, label="Future data Prediction", color="r") # Future Prediction Price
+last_index_ann = data.index[-1]
+future_index_ann = pd.date_range(start=last_index_ann, periods=len(future_predict_price_ann), freq='D')
+plt.plot(future_index_ann, future_predict_price_ann, label="Future Predicted Price", color="r") # Future Predicted Price
 
 plt.legend()
 plt.title(f'ANN Prediction - {stock}')
@@ -180,52 +178,119 @@ plt.xlabel("Days")
 plt.ylabel("Closing Price")
 plt.tight_layout()
 
+print("ANN Confusion Matrix: ")
+real_change = data['Change_3day'].to_numpy()
+real_change = real_change[49:-3]
+real_change = real_change.reshape(real_change.shape[0])
+
+true_P_ann = 0
+true_N_ann = 0
+false_P_ann = 0
+false_N_ann = 0
+for i in range(real_change.shape[0]):
+    if (real_change[i] > 0) and (y_past_predict_ann[i] > 0):
+        true_P_ann += 1
+    elif (real_change[i] > 0) and (y_past_predict_ann[i] < 0):
+        false_N_ann += 1
+    elif (real_change[i] < 0) and (y_past_predict_ann[i] > 0):
+        false_P_ann += 1
+    elif (real_change[i] < 0) and (y_past_predict_ann[i] < 0):
+        true_N_ann += 1
+
+print(f'True Positive: {true_P_ann}')
+print(f'True Negative: {true_N_ann}')
+print(f'False Positive: {false_P_ann}')
+print(f'False Negative: {false_N_ann}')
+print(f'Accuracy: {((true_P_ann+true_N_ann)/(true_P_ann+true_N_ann+false_P_ann+false_N_ann)):.2f}')
+
+earn_ann = 0
+trade_ann = 0
+for i in range(real_change.shape[0]):
+    if y_past_predict_ann[i] > 0:
+        earn_ann = earn_ann + real_change[i]
+        trade_ann += 1
+
+print(f'\nTotal trades: {trade_ann} (In {real_change.shape[0]} days)')
+print(f'Total Earned: {earn_ann:.2f}\n')
+
 
 
 # LSTM Prediction
 LSTM_model = keras.models.load_model('Trained Models/LSTM_model.h5')
 
 # Past prediction
-y_past_predict = LSTM_model.predict(X_past)
-y_past_predict = scaler.inverse_transform(y_past_predict)
-y_past_predict = y_past_predict.reshape(y_past_predict.shape[0])
+y_past_predict_lstm = LSTM_model.predict(X_past)
+y_past_predict_lstm = scaler.inverse_transform(y_past_predict_lstm)
+y_past_predict_lstm = y_past_predict_lstm.reshape(y_past_predict_lstm.shape[0])
 
-past_predict_price = data['Close'].to_numpy().flatten()
-past_predict_price = past_predict_price[49:-3]
-past_predict_price = past_predict_price + y_past_predict
+past_predict_price_lstm = data['Close'].to_numpy().flatten()
+past_predict_price_lstm = past_predict_price_lstm[49:-3]
+past_predict_price_lstm = past_predict_price_lstm + y_past_predict_lstm
 
 # Future prediction
-y_future_predict = LSTM_model.predict(X_future)
-y_future_predict = scaler.inverse_transform(y_future_predict)
-y_future_predict = y_future_predict.reshape(y_future_predict.shape[0])
+y_future_predict_lstm = LSTM_model.predict(X_future)
+y_future_predict_lstm = scaler.inverse_transform(y_future_predict_lstm)
+y_future_predict_lstm = y_future_predict_lstm.reshape(y_future_predict_lstm.shape[0])
 
-future_predict_price = data['Close'].to_numpy().flatten()
-future_predict_price = future_predict_price[-3:]
-future_predict_price = future_predict_price + y_future_predict
-future_predict_price = np.insert(future_predict_price, 0, data['Close'].tail(1).values[0])
+future_predict_price_lstm = data['Close'].to_numpy().flatten()
+future_predict_price_lstm = future_predict_price_lstm[-3:]
+future_predict_price_lstm = future_predict_price_lstm + y_future_predict_lstm
+future_predict_price_lstm = np.insert(future_predict_price_lstm, 0, data['Close'].tail(1).values[0])
 
 print("\n\nLSTM: ")
-print(f'Latest Closing Price: {future_predict_price[0]:.2f}')
-print(f'Future Closing Price (Next Day): {future_predict_price[1]:.2f}')
-print(f'Future Closing Price (Two Days Ahead): {future_predict_price[2]:.2f}')
-print(f'Future Closing Price (Three Days Ahead): {future_predict_price[3]:.2f}\n')
+print(f'Latest Closing Price: {future_predict_price_lstm[0]:.2f}')
+print(f'Future Closing Price (Next Day): {future_predict_price_lstm[1]:.2f}')
+print(f'Future Closing Price (Two Days Ahead): {future_predict_price_lstm[2]:.2f}')
+print(f'Future Closing Price (Three Days Ahead): {future_predict_price_lstm[3]:.2f}\n')
 
 # Plot the Graph
 plt.figure(figsize=(18, 6))
 
 plt.plot(data.index, data.Close, label="Original Price", color="b") # Original Price
 
-plt.plot(data.index[52:-30], past_predict_price[:-30], label="Past data Prediction", color="brown") # Past Prediction Price
+plt.plot(data.index[52:-30], past_predict_price_lstm[:-30], label="Past Predicted Price", color="brown") # Past Prediction Price
 
-last_index = data.index[-1]
-future_index = pd.date_range(start=last_index, periods=len(future_predict_price), freq='D')
-plt.plot(future_index, future_predict_price, label="Future data Prediction", color="r") # Future Prediction Price
+last_index_lstm = data.index[-1]
+future_index_lstm = pd.date_range(start=last_index_lstm, periods=len(future_predict_price_lstm), freq='D')
+plt.plot(future_index_lstm, future_predict_price_lstm, label="Future Predicted Price", color="r") # Future Prediction Price
 
 plt.legend()
 plt.title(f'LSTM Prediction - {stock}')
 plt.xlabel("Days")
 plt.ylabel("Closing Price")
 plt.tight_layout()
+
+
+print("LSTM Confusion Matrix: ")
+true_P_lstm = 0
+true_N_lstm = 0
+false_P_lstm = 0
+false_N_lstm = 0
+for i in range(real_change.shape[0]):
+    if (real_change[i] > 0) and (y_past_predict_lstm[i] > 0):
+        true_P_lstm += 1
+    elif (real_change[i] > 0) and (y_past_predict_lstm[i] < 0):
+        false_N_lstm += 1
+    elif (real_change[i] < 0) and (y_past_predict_lstm[i] > 0):
+        false_P_lstm += 1
+    elif (real_change[i] < 0) and (y_past_predict_lstm[i] < 0):
+        true_N_lstm += 1
+
+print(f'True Positive: {true_P_lstm}')
+print(f'True Negative: {true_N_lstm}')
+print(f'False Positive: {false_P_lstm}')
+print(f'False Negative: {false_N_lstm}')
+print(f'Accuracy: {((true_P_lstm+true_N_lstm)/(true_P_lstm+true_N_lstm+false_P_lstm+false_N_lstm)):.2f}')
+
+earn_lstm = 0
+trade_lstm = 0
+for i in range(real_change.shape[0]):
+    if y_past_predict_lstm[i] > 0:
+        earn_lstm = earn_lstm + real_change[i]
+        trade_lstm += 1
+
+print(f'\nTotal trades: {trade_lstm} (In {real_change.shape[0]} days)')
+print(f'Total Earned: {earn_lstm:.2f}\n')
 
 
 plt.show()
