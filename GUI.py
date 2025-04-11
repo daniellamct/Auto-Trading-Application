@@ -2,10 +2,11 @@ import customtkinter as ctk
 from PIL import Image,ImageTk
 import yf_check
 import threading 
+import os
 
 from Graphs_Analysis import GraphsAnalysis as GA
 from Company_Profile_Scraping import CompanyProfile as CP
-from News_Sentiment_Analysis import NewsSentiment as NS
+from News_Sentiment_Analysis import NewsSentiment as NS, CardiffnlpInstaller
 from Trained_Models import Price_Prediction as PP
 from Strategy_Backtesting import backtesting as SB
 
@@ -48,6 +49,16 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         
+        # app init
+        CardiffnlpInstaller.model_install() # Install models
+
+        folder_name = 'temp' # Create empty folder for temporary storage
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+            print(f"'{folder_name}' folder created.")
+        else:
+            print(f"'{folder_name}' folder already exists.")
+
         # Configure window
         self.title("Stock Analysis Application")
         self.geometry("1400x800")
