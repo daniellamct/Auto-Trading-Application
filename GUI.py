@@ -563,7 +563,7 @@ class NewsAnalysisPage(ctk.CTkFrame):
         
         analyze_button = ctk.CTkButton(stock_frame, 
                                      text="Analyze",
-                                     command=self.start_show_news,
+                                     command=self.show_news,
                                      fg_color="#1976D2",
                                      hover_color="#0D47A1",
                                      font=ctk.CTkFont(weight="bold"),
@@ -654,9 +654,9 @@ class NewsAnalysisPage(ctk.CTkFrame):
         ratings_frame.pack(fill="x", padx=10, pady=(0, 10))
         
         # TextBlob rating
-        ctk.CTkLabel(ratings_frame,
-                    text=f"TextBlob: {news_data['textblob']}",
-                    font=ctk.CTkFont(size=12)).pack(side="left", padx=5)
+        #ctk.CTkLabel(ratings_frame,
+        #            text=f"TextBlob: {news_data['textblob']}",
+        #            font=ctk.CTkFont(size=12)).pack(side="left", padx=5)
         
         # CardiffNLP rating
         ctk.CTkLabel(ratings_frame,

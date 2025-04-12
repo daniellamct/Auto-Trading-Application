@@ -11,7 +11,7 @@ def fun_news(stock):
     try:
         # Load the pretrained model
         state = "Loading models"
-        print(state)
+        print("\n" + state)
         task = 'sentiment-latest'
         model_dir = f'News_Sentiment_Analysis/cardiffnlp/twitter-roberta-base-{task}'
         tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -79,7 +79,7 @@ def fun_news(stock):
                     for p in p_all:
                         paragraph += p.text
                 if len(paragraph) < 1000:
-                    print("Skipped news: The Content length is too short. ")
+                    print("Skipped news: The content length is too short. ")
                     continue
 
                 if(len(title) != 0 and len(paragraph) != 0):
@@ -87,14 +87,16 @@ def fun_news(stock):
                     paragraph_500 = model_summarizer(paragraph, ratio=0.8)
                     paragraph_100 = model_summarizer(paragraph, ratio=0.2)
 
-                    # Sentiment Analysis (TextBlob)
-                    analysis = TextBlob(f'{title}. {paragraph}')
-                    if(analysis.sentiment.polarity > 0.2):
-                        result_TextBlob = f'Positive (with {analysis.sentiment.polarity:.2f} polarity score)'
-                    elif(analysis.sentiment.polarity < -0.2):
-                        result_TextBlob = f'Negative (with {analysis.sentiment.polarity:.2f} polarity score)'
-                    else:
-                        result_TextBlob = f'Neutral (with {analysis.sentiment.polarity:.2f} polarity score)'
+                    # Sentiment Analysis by TextBlob (disabled to simplify the application)
+                    result_TextBlob = " "
+                    #analysis = TextBlob(f'{title}. {paragraph_500}')
+                    #if(analysis.polarity > 0.2):
+                    #    result_TextBlob = f'Positive (with {analysis.polarity:.2f} polarity score)'
+                    #elif(analysis.polarity < -0.2):
+                    #    result_TextBlob = f'Negative (with {analysis.polarity:.2f} polarity score)'
+                    #else:
+                    #    result_TextBlob = f'Neutral (with {analysis.polarity:.2f} polarity score)'
+
 
                     # Sentiment Analysis (Cardiffnlp)
                     encoded_input = tokenizer(f'{title}. {paragraph_500}', return_tensors='pt')
@@ -120,7 +122,7 @@ def fun_news(stock):
 
                     # Stop if processed enough news
                     cur += 1
-                    if cur == 5:
+                    if cur == 4:
                         break
                     
 
@@ -131,7 +133,7 @@ def fun_news(stock):
         # Result
         for i in range(0, len(titles)):
             print(f'\n\n{i+1}: {titles[i]}: ')
-            print(f'Rating (By TextBlob): {sentiments_Textblob[i]}')
+            #print(f'Rating (By TextBlob): {sentiments_Textblob[i]}')
             print(f'Rating (By Cardiffnlp): {sentiments_Cardiffnlp[i]}')
             #print(f'Origin Article: {paragraphs_500[i]}\n')
             #print(f'Summarization (Within 500 words): {paragraphs_500[i]}\n')
